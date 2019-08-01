@@ -1,0 +1,72 @@
+
+Major Assumptions:
+
+1. Both the base and meds files are from the same patients pool. 
+   In fact they have a few non-overlapping ids.
+
+2. Both the base and meds files are for a same period of time (1-3 months) presumably.
+
+3. The meds are complete for the period. Duplicate meds records are from continuous prescriptions. 
+
+
+Question 1: What are the most common medications for each disease in the base file?
+Script: data_proc.py
+
+Result:
+   highBPDiagnosed: LISINOPRIL
+   diabetesDiagnosed: METFORMIN
+   chdDiagnosed: SIMVASTATIN
+   miDiagnosed: LISINOPRIL
+   anginaDiagnosed: LISINOPRIL
+   strokeDiagnosed: SIMVASTATIN
+   emphysemaDiagnosed: LISINOPRIL
+   asthmaDiagnosed: ALBUTEROL
+   otherHDDiagnosed: LISINOPRIL
+   heartFailureDiagnosed: FUROSEMIDE
+
+Question 2: What medications are most indicative of each disease?
+Script: data_proc.py
+Methodology: for each rxName calculate the percentage of population that uses that medicine with diagnosed 'Yes' and 'No'.
+             Take the difference and find the medicine with the largest difference. For example, 2.4% of the highBP patients
+             use LISINOPRIL. Among the people that are diagnosed without highBP, the ratio of using LISINOPRIL is only 0.5%.
+             The difference is 1.9%, highest among all medications for highBP.
+
+Result:
+   highBPDiagnosed: LISINOPRIL
+   diabetesDiagnosed: METFORMIN
+   chdDiagnosed: PLAVIX
+   miDiagnosed: PLAVIX
+   anginaDiagnosed: PLAVIX
+   strokeDiagnosed: PLAVIX
+   emphysemaDiagnosed: SPIRIVA
+   asthmaDiagnosed: ALBUTEROL
+   otherHDDiagnosed: FUROSEMIDE
+   heartFailureDiagnosed: FUROSEMIDE
+
+3. From the correlation analysis, about 10% of the patients are diagnosed asthma and seem to uncorrelated with other diseases.
+Script: data_proc.py  logistic_reg.py  random_forest.py  grid_search.py  voting.py  xgb.py  tf2.py
+Methodology: using the result from Q2 and select the 30 most indicative medications' normalized aggregated quantity
+             for asthma disease as features, together with age, weight and race.
+             Tried algorithms logistic regression, random forest, voting by three methods, grid search hyperparameters, xgboost and NN.             
+
+Result:
+Algo                     Precision              Recall              ROC AUC
+logistic regression          0.85                 0.18                 0.76
+random forest                0.65                 0.44                 0.77
+grid search                  0.66                 0.46                 0.78
+voting                       0.81                 0.26                 0.79
+NN                           0.77                 0.48                 0.80
+
+4. Demonstrate that the end user should be confident in the result.
+The results from various ML algorithms do not vary much. The precision is around 80% while recall is 40%. 
+In training with each algorithm, 40% of the sample are saved for testing and parameters are not fined tuned
+except for the grid search algorithm.
+
+It indicates that among all the patients that are identified with asthma by the model, 80% do have asthma.
+However, it can only recognize about 40% of the asthma patients.
+
+To improve we should improve the features we use. For example, we should collect more information about the medications.
+We need to know which diseases the medications are supposed treat. This can serve as a dimension reduction mechanism.
+Also we can include more time information in the meds file.
+
+
